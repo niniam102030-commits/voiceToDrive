@@ -18,9 +18,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
-      # ---------------------------------------------------------------
-      # 1) JDK 17 (Temurin)
-      # ---------------------------------------------------------------
       - name: Set up JDK 17 (temurin)
         uses: actions/setup-java@v4
         with:
@@ -28,35 +25,47 @@ jobs:
           java-version: '17'
           cache: gradle
 
-      # ---------------------------------------------------------------
-      # 2) Android SDK (build-tools / platform 35)
-      # ---------------------------------------------------------------
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Configure Android SDK path
+        shell: bash
+        run: |
+          export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}"
+          export ANDROID_HOME="$ANDROID_SDK_ROOT"
+
+          if [ -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+            export PATH="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
+          elif [ -x "$ANDROID_SDK_ROOT/cmdline-tools/16.0/bin/sdkmanager" ]; then
+            export PATH="$ANDROID_SDK_ROOT/cmdline-tools/16.0/bin:$ANDROID_SDK_ROOT/platform-tools:$ANDROID_SDK_ROOT/emulator:$PATH"
+          else
+            echo "Android SDK cmdline-tools not found in $ANDROID_SDK_ROOT"
+            echo "---- SDK tree ----"
+            ls -R "$ANDROID_SDK_ROOT" 2>/dev/null || true
+            exit 1
+          fi
+
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
+          echo "PATH=$PATH" >> "$GITHUB_ENV"
 
       - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses > /dev/null 2>&1 || true
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
 
       - name: Install Android platform 35 + build-tools 35.0.0
+        shell: bash
         run: |
-          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
 
-      # ---------------------------------------------------------------
-      # 3) Generate the Gradle wrapper if it does not exist yet
-      #    (there is no local Gradle/Android Studio on the dev machine,
-      #     so the wrapper is born here inside the runner)
-      # ---------------------------------------------------------------
       - name: Generate Gradle wrapper (8.9) if missing
+        shell: bash
         run: |
           if [ -f "gradlew" ]; then
             echo ">>> gradlew already present - skipping generation"
           else
             echo ">>> gradlew not found - generating a Gradle 8.9 wrapper"
-            # The wrapper task is executed in an EMPTY seed project on purpose.
-            # Running it inside our build would configure :app as well, and the
-            # preselected Gradle version of the runner might then clash with AGP
-            # 8.7.3. In an empty project the task only writes the wrapper files,
-            # so it works no matter which Gradle version is installed.
             rm -rf /tmp/wrapper-seed
             mkdir -p /tmp/wrapper-seed
             echo 'rootProject.name = "wrapper-seed"' > /tmp/wrapper-seed/settings.gradle
@@ -64,18 +73,7 @@ jobs:
             cp -r /tmp/wrapper-seed/gradle /tmp/wrapper-seed/gradlew /tmp/wrapper-seed/gradlew.bat .
           fi
           chmod +x ./gradlew
-          cat gradle/wrapper/gradle-wrapper.properties || true
 
-      - name: Show generated wrapper files
-        run: ls -la gradle/wrapper || true
-
-      # ---------------------------------------------------------------
-      # 4) Debug keystore. It is restored from the Actions cache first, so the
-      #    SAME key (and therefore the same SHA-1) survives across runs — a
-      #    Google "Android" OAuth client is bound to that fingerprint. Only when
-      #    the cache is cold is a new key generated (alias my-alias, password
-      #    123456, validity 10000 days).
-      # ---------------------------------------------------------------
       - name: Restore debug keystore from cache
         uses: actions/cache@v4
         with:
@@ -100,23 +98,12 @@ jobs:
             echo ">>> app/keystore.jks already exists - keeping the existing key"
           fi
 
-      # ---------------------------------------------------------------
-      # 5) Print the SHA-1 fingerprint. It is needed only for a Google Cloud
-      #    OAuth client of type "Android"; a "Desktop app" client with the
-      #    registered redirect URI does not depend on it.
-      # ---------------------------------------------------------------
       - name: Print signing report (SHA-1)
         run: ./gradlew signingReport
 
-      # ---------------------------------------------------------------
-      # 6) Build the debug APK
-      # ---------------------------------------------------------------
       - name: Assemble debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      # ---------------------------------------------------------------
-      # 7) Upload artifacts: APK + keystore
-      # ---------------------------------------------------------------
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
