@@ -19,7 +19,6 @@ import net.openid.appauth.ResponseTypeValues
 import net.openid.appauth.TokenRequest
 import net.openid.appauth.TokenResponse
 import net.openid.appauth.AuthState
-import java.io.IOException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -155,10 +154,6 @@ class AuthRepository(
             val tokenResponse = suspendCancellableCoroutine<TokenResponse> { continuation ->
                 val service = authorizationService()
 
-                continuation.invokeOnCancellation {
-                    service.dispose()
-                }
-
                 service.performTokenRequest(request) { response, exception ->
                     service.dispose()
 
@@ -168,12 +163,21 @@ class AuthRepository(
                         }
                     } else if (continuation.isActive) {
                         continuation.resumeWithException(
-                            exception ?: IOException("Token refresh failed")
+                            exception ?: IllegalStateException(
+                                "AppAuth returned neither a token response nor an exception"
+                            )
                         )
                     }
                 }
+
+                continuation.invokeOnCancellation {
+                    service.dispose()
+                }
             }
 
+            // Store the fresh access token directly: building an AuthState here
+            // would need a non-null AuthorizationResponse, which a pure token
+            // refresh does not have.
             settings.accessToken = tokenResponse.accessToken
             settings.accessTokenExpiry = tokenResponse.accessTokenExpirationTime ?: 0L
             if (!tokenResponse.refreshToken.isNullOrBlank()) {
