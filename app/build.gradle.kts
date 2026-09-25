@@ -16,8 +16,6 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
         // Used by the AppAuth redirect activity declaration in the manifest:
         // <data android:scheme="${appAuthRedirectScheme}" />
         manifestPlaceholders["appAuthRedirectScheme"] = "com.personal.audioapp"
@@ -121,6 +119,7 @@ dependencies {
     // ---------------- Network (Google Drive REST) ----------------
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // ---------------- Secure storage ----------------
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
