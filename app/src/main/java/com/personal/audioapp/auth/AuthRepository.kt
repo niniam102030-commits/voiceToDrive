@@ -7,6 +7,7 @@ import android.util.Log
 import com.personal.audioapp.data.SettingsRepository
 import com.personal.audioapp.util.JwtUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import net.openid.appauth.AuthorizationException
 import net.openid.appauth.AuthorizationRequest
@@ -16,7 +17,11 @@ import net.openid.appauth.AuthorizationServiceConfiguration
 import net.openid.appauth.GrantTypeValues
 import net.openid.appauth.ResponseTypeValues
 import net.openid.appauth.TokenRequest
+import net.openid.appauth.TokenResponse
 import net.openid.appauth.AuthState
+import java.io.IOException
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 /**
  * OAuth 2.0 (Authorization Code + PKCE) against Google, implemented with AppAuth.
@@ -147,16 +152,28 @@ class AuthRepository(
                 .setRefreshToken(refresh)
                 .build()
 
-            val service = authorizationService()
-            val tokenResponse = try {
-                service.performTokenRequestSync(request)
-            } finally {
-                service.dispose()
+            val tokenResponse = suspendCancellableCoroutine<TokenResponse> { continuation ->
+                val service = authorizationService()
+
+                continuation.invokeOnCancellation {
+                    service.dispose()
+                }
+
+                service.performTokenRequest(request) { response, exception ->
+                    service.dispose()
+
+                    if (response != null) {
+                        if (continuation.isActive) {
+                            continuation.resume(response)
+                        }
+                    } else if (continuation.isActive) {
+                        continuation.resumeWithException(
+                            exception ?: IOException("Token refresh failed")
+                        )
+                    }
+                }
             }
 
-            // Store the fresh access token directly: building an AuthState here
-            // would need a non-null AuthorizationResponse, which a pure token
-            // refresh does not have.
             settings.accessToken = tokenResponse.accessToken
             settings.accessTokenExpiry = tokenResponse.accessTokenExpirationTime ?: 0L
             if (!tokenResponse.refreshToken.isNullOrBlank()) {
