@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>نمودار معماری — صدا به درایو</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 24px;
+    font-family: "Vazirmatn", "Segoe UI", Tahoma, system-ui, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    line-height: 1.9;
+  }
+  header { max-width: 1100px; margin: 0 auto 8px; }
+  h1 { font-size: 22px; margin: 0 0 6px; }
+  p.lead { margin: 0 0 18px; color: #94a3b8; font-size: 14px; }
+  code { background: #1e293b; padding: 2px 6px; border-radius: 6px; font-size: 13px; }
+  main { max-width: 1100px; margin: 0 auto; }
+  section {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 18px;
+    overflow-x: auto;
+  }
+  section h2 {
+    color: #0f172a;
+    font-size: 16px;
+    margin: 0 0 10px;
+    padding-inline-start: 6px;
+    border-inline-start: 4px solid #1565c0;
+  }
+  pre.mermaid { margin: 0; text-align: center; }
+  #fallback {
+    display: none;
+    max-width: 1100px;
+    margin: 0 auto 18px;
+    background: #7f1d1d;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>نمودار معماری پروژه — «صدا به درایو»</h1>
+  <p class="lead">
+    همان نمودارهای <code>ARCHITECTURE.md</code>، اینجا با mermaid رسم می‌شوند.
+    اگر مرورگر به CDN دسترسی نداشت، متن نمودارها را از همان فایل بردارید و در
+    <code>mermaid.live</code> پیست کنید.
+  </p>
+</header>
+
+<div id="fallback">
+  کتابخانهٔ mermaid از CDN بارگذاری نشد (احتمالاً بدون اینترنت). متن هر نمودار
+  در فایل <code>ARCHITECTURE.md</code> موجود است و می‌توانید آن را در
+  <code>mermaid.live</code> یا VS Code رندر کنید.
+</div>
+
+<main>
+
+<section>
+  <h2>۱. نمای کلی سیستم</h2>
+<pre class="mermaid">
+flowchart TD
+    subgraph UI["لایهٔ UI — Jetpack Compose"]
+        MA["MainActivity<br/>مجوزها + SAF + شروع OAuth"]
+        HS["HomeScreen<br/>صف تسک‌ها + FAB ضبط"]
+        SS["SettingsScreen<br/>Client ID + توگل‌ها"]
+        VM["AppViewModel<br/>تنها منبع حقیقت UI"]
+    end
+
+    subgraph ANDROID["سرویس‌های اندروید"]
+        SVC["AudioRecordService<br/>Foreground + MediaRecorder"]
+        WM["WorkManager<br/>CompressionWorker / UploadWorker"]
+    end
+
+    subgraph DATA["لایهٔ داده"]
+        DB[("Room<br/>audio_app.db / file_tasks")]
+        PREFS[("EncryptedSharedPreferences<br/>audio_app_secure_prefs")]
+        FILES[("حافظهٔ خصوصی اپ<br/>recordings / compressed / incoming")]
+    end
+
+    subgraph NET["شبکه و احراز هویت"]
+        AUTH["AuthRepository<br/>AppAuth + توکن refresh"]
+        DRIVE["DriveApi + DriveClient<br/>Retrofit + OkHttp"]
+    end
+
+    MA --> HS
+    MA --> SS
+    HS --> VM
+    SS --> VM
+    VM --> SVC
+    VM --> WM
+    VM --> DB
+    VM --> PREFS
+    VM --> AUTH
+    SVC --> DB
+    SVC --> WM
+    SVC --> FILES
+    WM --> FILES
+    WM --> DB
+    WM --> AUTH
+    AUTH --> PREFS
+    WM --> DRIVE
+    DRIVE --> GDRIVE["Google Drive REST v3"]
+    AUTH --> GOOGLE["Google OAuth 2.0"]
+</pre>
+</section>
+
+<section>
+  <h2>۲. مسیر یک فایل صوتی</h2>
+<pre class="mermaid">
+flowchart LR
+    A1["ضبط با MediaRecorder<br/>m4a / AAC / 128kbps / 44.1kHz"] --> B
+    A2["انتخاب فایل با SAF<br/>OpenDocument فیلتر audio/*"] --> A3["کپی به incoming/"] --> B
+    B["درج در Room<br/>status = PENDING"] --> C{"autoUpload؟"}
+    C -- "خیر" --> Z1["در صف می‌ماند تا Retry بزنید"]
+    C -- "بله" --> D["CompressionWorker<br/>compress-taskId"]
+    D --> E["FFmpegKit.execute<br/>mp3 با بی‌تریت ۶۴ kbps"]
+    E -- "موفق" --> F["localPath = compressed/id_name.mp3<br/>status = UPLOADING"]
+    E -- "ناموفق" --> G["status = FAILED + دلیل خطا"]
+    F --> H["UploadWorker<br/>upload-taskId"]
+    H --> I1["۱) POST ساخت نشست resumable"]
+    I1 --> I2["۲) PUT بایت‌ها روی Location"]
+    I2 -- "موفق" --> J["status = COMPLETED<br/>remoteId = شناسهٔ درایو"]
+    I2 -- "خطا" --> K{"تلاش کمتر از ۳؟"}
+    K -- "بله" --> H
+    K -- "خیر" --> G
+    J --> L{"autoDeleteAfterUpload؟"}
+    L -- "بله" --> M["حذف فایل محلی"]
+    L -- "خیر" --> N["فایل روی گوشی می‌ماند"]
+</pre>
+</section>
+
+<section>
+  <h2>۳. چرخهٔ حیات تسک</h2>
+<pre class="mermaid">
+stateDiagram-v2
+    [*] --> PENDING: پایان ضبط یا انتخاب فایل
+    PENDING --> COMPRESSING: enqueueCompression
+    COMPRESSING --> UPLOADING: FFmpeg موفق
+    UPLOADING --> COMPLETED: آپلود موفق
+    COMPRESSING --> FAILED: خطای فشرده‌سازی
+    UPLOADING --> FAILED: سه تلاش ناموفق
+    FAILED --> PENDING: Retry
+    PENDING --> UPLOADING: Retry وقتی فایل mp3 است
+    COMPLETED --> [*]: پاک کردن آپلودهای تمام‌شده
+</pre>
+</section>
+
+<section>
+  <h2>۴. جریان ورود به گوگل (OAuth 2.0 + PKCE)</h2>
+<pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant U as کاربر
+    participant M as MainActivity
+    participant A as AppAuth
+    participant G as Google
+    participant R as AuthRepository
+    participant S as SettingsRepository
+    U->>M: دکمهٔ اتصال
+    M->>R: authorizationRequest
+    R->>S: خواندن clientId
+    R-->>M: AuthorizationRequest
+    M->>A: performAuthorizationRequest
+    A->>G: باز کردن Custom Tab
+    U->>G: انتخاب حساب و تأیید
+    G-->>M: redirect oauth2callback
+    M->>R: handleAuthorizationResponse
+    R->>G: performTokenRequest
+    G-->>R: access_token + refresh_token
+    R->>S: ذخیرهٔ رمزنگاری‌شده
+    R-->>M: AuthState و UI متصل می‌شود
+</pre>
+</section>
+
+<section>
+  <h2>۵. خط لولهٔ CI (ساخت APK)</h2>
+<pre class="mermaid">
+flowchart LR
+    P["push / workflow_dispatch"] --> J["setup-java@v4<br/>JDK 17 temurin"]
+    J --> S["setup-android@v3<br/>platform 35 + licences"]
+    S --> W["wrapper نسخهٔ 8.9<br/>در پروژهٔ خالی"]
+    W --> K["actions/cache@v4<br/>بازگرداندن keystore"]
+    K --> KG["keytool در صورت نبود فایل"]
+    KG --> SR["./gradlew signingReport<br/>چاپ SHA-1"]
+    SR --> B["./gradlew assembleDebug"]
+    B --> A1["artifact: app-debug-apk"]
+    B --> A2["artifact: keystore"]
+</pre>
+</section>
+
+<section>
+  <h2>۶. مدل داده (Room)</h2>
+<pre class="mermaid">
+erDiagram
+    FILE_TASKS {
+        long id PK "autoGenerate"
+        string displayName "نام نمایشی و نام فایل روی Drive"
+        string localPath "مسیر فایل فعلی خام یا mp3"
+        string remoteId "شناسهٔ فایل در Drive"
+        string mimeType "audio/mp4 سپس audio/mpeg"
+        long sizeBytes "اندازهٔ فایل فعلی"
+        string status "PENDING تا COMPLETED"
+        string error "دلیل آخرین خطا"
+        boolean deleteLocalAfterUpload "عکس فوری توگل"
+        long createdAt
+        long updatedAt
+    }
+</pre>
+</section>
+
+</main>
+
+<script type="module">
+  const fallback = document.getElementById('fallback');
+  try {
+    const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs');
+    mermaid.initialize({
+      // The import resolves after DOMContentLoaded, so mermaid has to be asked
+      // to render explicitly instead of relying on `startOnLoad`.
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'loose',
+      flowchart: { htmlLabels: true, useMaxWidth: true },
+      sequence: { useMaxWidth: true },
+    });
+    await mermaid.run({ querySelector: 'pre.mermaid' });
+  } catch (e) {
+    fallback.style.display = 'block';
+    console.error('mermaid failed to load', e);
+  }
+</script>
+</body>
+</html>

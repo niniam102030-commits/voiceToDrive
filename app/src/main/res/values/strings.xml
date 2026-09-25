@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">صدا به درایو</string>
+
+    <!-- Foreground notification -->
+    <string name="notification_channel_recording">ضبط صدا</string>
+    <string name="notification_channel_recording_desc">در زمان ضبط صدا نمایش داده می‌شود</string>
+    <string name="notification_recording_title">در حال ضبط صدا…</string>
+    <string name="notification_recording_text">برای پایان و افزودن فایل به صف، «توقف» را بزنید</string>
+    <string name="action_stop">توقف</string>
+
+    <!-- Home screen -->
+    <string name="home_title">صدا به درایو</string>
+    <string name="action_settings">تنظیمات</string>
+    <string name="action_start_recording">شروع ضبط</string>
+    <string name="action_stop_recording">توقف ضبط</string>
+    <string name="action_new_recording">ضبط جدید</string>
+    <string name="action_pick_file">انتخاب فایل صوتی</string>
+
+    <string name="drive_connected_title">Google Drive متصل است</string>
+    <string name="drive_disconnected_title">Google Drive متصل نیست</string>
+    <string name="drive_account_linked">حساب گوگل متصل شده است</string>
+    <string name="drive_connect_hint">Client ID گوگل را در تنظیمات وارد کنید و سپس متصل شوید.</string>
+    <string name="action_connect_drive">اتصال به Google Drive</string>
+
+    <string name="queue_title">صف: %1$d</string>
+    <string name="queue_empty">هنوز چیزی اینجا نیست. یک صدا ضبط کنید یا یک فایل صوتی انتخاب کنید؛ فایل به MP3 با بی‌تریت ۶۴ kbps تبدیل و روی Google Drive آپلود می‌شود.</string>
+    <string name="action_clear_completed">پاک کردن آپلودهای تمام‌شده</string>
+    <string name="task_meta">%1$s · %2$s</string>
+    <string name="task_drive_id">شناسهٔ درایو: %1$s</string>
+    <string name="action_retry">تلاش دوباره</string>
+    <string name="action_delete">حذف</string>
+
+    <!-- Task statuses -->
+    <string name="status_pending">در انتظار</string>
+    <string name="status_compressing">در حال فشرده‌سازی</string>
+    <string name="status_uploading">در حال آپلود</string>
+    <string name="status_completed">تمام شد</string>
+    <string name="status_failed">خطا</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">تنظیمات</string>
+    <string name="action_back">بازگشت</string>
+    <string name="action_copy">کپی</string>
+
+    <string name="settings_oauth_section">ورود با Google — OAuth 2.0</string>
+    <string name="settings_client_id">Client ID</string>
+    <string name="settings_client_id_hint">xxxx.apps.googleusercontent.com</string>
+    <string name="settings_folder_id">شناسهٔ پوشهٔ درایو — اختیاری</string>
+    <string name="settings_folder_hint">خالی بگذارید تا خودش پوشهٔ AudioApp را بسازد. با دسترسی drive.file فقط پوشه‌هایی در دسترس‌اند که خودِ اپ ساخته باشد.</string>
+    <string name="settings_redirect_uri">Redirect URI</string>
+    <string name="settings_oauth_help">ابتدا در Google Cloud Console سرویس Drive API را فعال کنید، بعد یک OAuth client از نوع «Android» با نام بستهٔ com.personal.audioapp و همان SHA-1 که در لاگ CI چاپ می‌شود بسازید. اگر نوع «Desktop app» می‌سازید، مقدار Redirect URI بالا را در Authorized redirect URIs ثبت کنید.</string>
+
+    <string name="settings_account_section">حساب</string>
+    <string name="settings_connected">متصل به حساب گوگل</string>
+    <string name="settings_connected_as">متصل به‌عنوان %1$s</string>
+    <string name="settings_not_connected">متصل نیست</string>
+    <string name="action_connect">اتصال</string>
+    <string name="action_reconnect">اتصال دوباره</string>
+    <string name="action_sign_out">خروج از حساب</string>
+
+    <string name="settings_automation">خودکارسازی</string>
+    <string name="settings_auto_upload">فشرده‌سازی و آپلود خودکار پس از ضبط</string>
+    <string name="settings_auto_upload_hint">اگر خاموش باشد فایل‌ها در حالت «در انتظار» می‌مانند تا خودتان تلاش دوباره کنید</string>
+    <string name="settings_auto_delete">حذف فایل گوشی پس از آپلود</string>
+    <string name="settings_auto_delete_hint">پس از تأیید آپلود توسط درایو، فضای گوشی آزاد می‌شود</string>
+    <string name="settings_auto_delete_source">حذف فایل خام پس از فشرده‌سازی</string>
+    <string name="settings_auto_delete_source_hint">فقط نسخهٔ MP3 با بی‌تریت ۶۴ kbps نگه داشته می‌شود</string>
+    <string name="action_save_settings">ذخیرهٔ تنظیمات</string>
+
+    <!-- Snackbar messages -->
+    <string name="msg_permission_required">برای ضبط صدا، دسترسی میکروفون لازم است</string>
+    <string name="msg_record_failed">ضبط شروع نشد؛ میکروفون یا فضای ذخیره‌سازی را بررسی کنید</string>
+    <string name="msg_need_client_id">ابتدا Client ID گوگل را در تنظیمات وارد کنید</string>
+    <string name="msg_file_added">فایل به صف اضافه شد</string>
+    <string name="msg_import_failed">افزودن فایل ناموفق بود: %1$s</string>
+    <string name="msg_requeued">دوباره در صف قرار گرفت: %1$s</string>
+    <string name="msg_auth_failed">ورود ناموفق بود: %1$s</string>
+    <string name="msg_drive_connected">حساب Google Drive وصل شد</string>
+    <string name="msg_token_failed">تبادل توکن ناموفق بود؛ دوباره تلاش کنید</string>
+    <string name="msg_signed_out">از حساب خارج شدید</string>
+    <string name="msg_settings_saved">تنظیمات ذخیره شد</string>
+    <string name="msg_unknown_error">خطای نامشخص</string>
+
+    <!-- Worker errors shown in the queue -->
+    <string name="error_source_missing">فایل مبدأ وجود ندارد یا خالی است: %1$s</string>
+    <string name="error_compression_failed">تبدیل به MP3 ناموفق بود</string>
+    <string name="error_upload_missing">فایل برای آپلود پیدا نشد: %1$s</string>
+    <string name="error_no_token">حساب Google Drive متصل نیست</string>
+    <string name="error_unknown_upload">خطای نامشخص در آپلود</string>
+    <string name="error_upload_http">آپلود ناموفق بود؛ کد خطای درایو: %1$d</string>
+    <string name="error_no_session">درایو نشست آپلود را برنگرداند</string>
+    <string name="error_drive_no_id">درایو شناسهٔ فایل را برنگرداند</string>
+</resources>
